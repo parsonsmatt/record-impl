@@ -168,11 +168,11 @@ fixDecs typeName selfName d = go
   where
 
     replaceSelf :: Exp -> Exp
-    replaceSelf = transform $ \x -> case x of
+    replaceSelf = rewrite $ \case
         UnboundVarE nm | nm == mkName "self" ->
-            VarE selfName
+            Just $ VarE selfName
         _ ->
-            x
+            Nothing
 
     addSelfLambda :: Body -> Body
     addSelfLambda = transformOn biplate replaceSelf

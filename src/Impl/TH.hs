@@ -1,4 +1,5 @@
 {-# language LambdaCase, EmptyCase, TypeApplications, RankNTypes, TypeFamilyDependencies, TypeFamilies, GADTs, ScopedTypeVariables, UndecidableInstances, ImpredicativeTypes, OverloadedRecordDot, QuasiQuotes, NoMonomorphismRestriction, DataKinds, FlexibleContexts , TemplateHaskell #-}
+{-# language ViewPatterns, EmptyCase, TypeApplications, RankNTypes, TypeFamilyDependencies, TypeFamilies, GADTs, ScopedTypeVariables, UndecidableInstances, ImpredicativeTypes, OverloadedRecordDot, QuasiQuotes, NoMonomorphismRestriction, DataKinds, FlexibleContexts , TemplateHaskell #-}
 
 {-# language RankNTypes, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies, ExistentialQuantification, ExplicitForAll, ImpredicativeTypes, RankNTypes #-}
 
@@ -6,13 +7,16 @@
 
 module Impl.TH where
 
+import Data.Traversable
+import Data.Data.Lens
+import Control.Lens
+import Language.Haskell.TH.Lens hiding (name)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Prelude hiding (exp)
 import Data.Time
 import GHC.Records
 import Language.Haskell.TH
--- import Language.Haskell.TH.Syntax
 
 giveIdentity :: IO (forall a . Show a => a -> String)
 giveIdentity = pure show
@@ -109,16 +113,45 @@ instance HasField "age" User (IO Integer) where
 --
 impl :: Name -> Q [Dec] -> Q [Dec]
 impl typ decsQ = do
-    decs <-
-        [d|
-            instance  HasField "explode" $(conT typ) (IO ()) where
-                getField _self = do
-                    putStrLn "oh no"
-            |]
     selfName <- newName "self"
     realDecs <- map (fixDecs typ selfName) <$> decsQ
-    _ <- traverse (reportWarning . show)  $ realDecs
-    pure decs
+    let stuff = collectDecs realDecs
+    for (Map.toList stuff) $ \(name, decs) -> do
+        let
+            methodName =
+                litT $ strTyLit $ nameBase $ name
+            methodTypes =
+                toListOf
+                    (traverse . _SigD . _2)
+                    decs
+            implementations = do
+                dec <- decs
+                case dec of
+                    FunD _ clauses ->
+                        pure $ FunD 'getField clauses
+                    ValD _ expr decs' ->
+                        pure $ FunD 'getField [Clause [VarP selfName] expr decs']
+                    _ ->
+                        []
+
+        methodType <-
+            case methodTypes of
+                [mt] ->
+                    pure mt
+                _ ->
+                    fail $ "Expected a type for " <> show name <> ", got: " <> show methodTypes
+
+        [stub] <-
+            [d|
+                instance HasField $(methodName) $(conT typ) $(pure methodType) where
+
+                |]
+        pure $ case stub of
+            InstanceD moverlap preds typ' _ ->
+                InstanceD moverlap preds typ' implementations
+            _ ->
+                error "internal error"
+
 
 collectDecs :: [Dec] -> Map Name [Dec]
 collectDecs [] = mempty
@@ -163,79 +196,18 @@ fixDecs typeName selfName d = go
   where
 
     replaceSelf :: Exp -> Exp
-    replaceSelf x = case x of
-        UnboundVarE nm
-            | nm == mkName "self" ->
-                error "asdfasdfdasdf"
-        VarE _ ->
-            x
-        ConE _ ->
-            x
+    replaceSelf = transform $ \x -> case x of
+        UnboundVarE nm | nm == mkName "self" ->
+            VarE selfName
         _ ->
             x
 
-    mkLambda :: Exp -> Exp
-    mkLambda = LamE [SigP (VarP selfName) (ConT typeName)]
-
-    addSelfGuardExps :: (Guard, Exp) -> (Guard, Exp)
-    addSelfGuardExps (grd, exp) = (newGrd, newExp)
-      where
-        newExp =
-            case exp of
-                VarE {} ->
-                    exp
-                ConE {} ->
-                    exp
-                LitE {} ->
-                    exp
-                AppE e0 e1 ->
-                    mkLambda $ AppE (replaceSelf e0) (replaceSelf e1)
-                AppTypeE e0 t ->
-                    AppTypeE (mkLambda e0) t
-                InfixE e0 e1 e2 ->
-                    mkLambda $ InfixE (replaceSelf <$> e0) (replaceSelf e1) (replaceSelf <$> e2)
-                UInfixE e0 e1 e2 ->
-                    mkLambda $ UInfixE (replaceSelf e0) (replaceSelf e1) (replaceSelf e2)
-                ParensE e ->
-                    ParensE $ mkLambda $ replaceSelf e
-                LamE a b ->
-                    mkLambda $ LamE a (replaceSelf b)
-                LamCaseE matches ->
-                    mkLambda $ LamCaseE (map fixMatch matches)
-                TupE mexps ->
-                    mkLambda $ TupE (map (fmap replaceSelf) mexps)
-                UnboxedTupE mexps ->
-                    mkLambda $ UnboxedTupE (map (fmap replaceSelf) mexps)
-                UnboxedSumE exp i j ->
-                    mkLambda $ UnboxedSumE (replaceSelf exp) i j
-                CondE a b c ->
-                    mkLambda $ CondE (replaceSelf a) (replaceSelf b) (replaceSelf c)
-                MultiIfE xs ->
-                    mkLambda $ MultiIfE (map _f xs)
-        newGrd =
-            case grd of
-                NormalG exp' ->
-                    NormalG $ replaceSelf exp'
-
-    fixMatch :: Match -> Match
-    fixMatch = \case
-
     addSelfLambda :: Body -> Body
-    addSelfLambda bdy =
-        case bdy of
-            GuardedB guard'exps ->
-                GuardedB $ map addSelfGuardExps guard'exps
-            NormalB exp ->
-                NormalB $ LamE [SigP (VarP selfName) (ConT typeName)] exp
-
+    addSelfLambda = transformOn biplate replaceSelf
 
     addSelfClause :: Clause -> Clause
-    addSelfClause (Clause patterns body decs) =
-        Clause ((VarP selfName) : patterns) (addSelfLambda body) (map replaceSelfDecs decs)
-
-    replaceSelfDecs :: Dec -> Dec
-    replaceSelfDecs = \case
-
+    addSelfClause (transformOn biplate replaceSelf -> Clause patterns body decs) =
+        Clause ((VarP selfName) : patterns) body decs
 
     addSelfType :: Type -> Type
     addSelfType t =
@@ -248,15 +220,15 @@ fixDecs typeName selfName d = go
             FunD name clauses ->
                 FunD name (map addSelfClause clauses)
             SigD name typ ->
-                SigD name (addSelfType typ)
+                SigD name typ
             KiSigD name typ ->
                 KiSigD name (addSelfType typ)
-            ForeignD _ ->
-                error "foreign unsupported"
             InfixD fixity name ->
                 InfixD fixity name
 
-            -- it would be cool to support these
+            -- it would be cool to support some of these
+            ForeignD _ ->
+                error "foreign unsupported"
             PragmaD {} ->
                 error "Pragma unsupported"
             DataFamilyD {} ->

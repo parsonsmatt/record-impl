@@ -28,4 +28,4 @@ module Impl where
 -- asdf :: Int
 -- asdf = 10
 --
--- -- $> asdf
+-- -- $> asd

@@ -22,7 +22,6 @@ library
   exposed-modules:
       Impl.TH
       Impl
-      Example
   hs-source-dirs:
       src
   build-depends:

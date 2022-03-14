@@ -1,11 +1,14 @@
 {-# language QuasiQuotes #-}
 {-# language TemplateHaskell #-}
 
-{-# options_ghc -fno-warn-orphans #-}
-
 module Example where
 
 import Impl.TH
+
+data User = User
+    { name :: String
+    , birthYear :: Int
+    }
 
 impl ''User [d|
 

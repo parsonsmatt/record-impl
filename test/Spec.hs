@@ -1,14 +1,9 @@
-{-# language TemplateHaskell, OverloadedRecordDot #-}
+{-# language TemplateHaskell, OverloadedRecordDot, DataKinds, OverloadedRecordDot  #-}
 
 import Impl.TH
-
-impl ''User [d|
-    explode :: IO ()
-    explode = do
-        user.myPrint 'a'
-    |]
+import Example
 
 main :: IO ()
 main = do
-    let user = User { name = "Matt" }
-    user.myPrint 'a'
+    let user = User { name = "Matt", birthYear = 1988 }
+    user.sayName

@@ -18,34 +18,6 @@ import Data.Time
 import GHC.Records
 import Language.Haskell.TH
 
-giveIdentity :: IO (forall a . Show a => a -> String)
-giveIdentity = pure show
-
-data User = User
-    { userName :: String
-    , userBirthYear :: Integer
-    }
-    deriving Show
-
-instance HasField "setName" User (String -> User) where
-    getField self str = self { userName = str }
-
-instance
-    ( Show a
-    , HasField "myPrint" User (a -> IO ())
-    )
-  =>
-    HasField "myPrint" User (a -> IO ())
-  where
-    getField self a = do
-        putStrLn $ concat [self.userName, " says: ", show a]
-
-instance HasField "age" User (IO Integer) where
-    getField self = do
-        (y, _, _) <- toGregorian . utctDay <$> getCurrentTime
-        pure $ y - self.userBirthYear
-
-
 -- What are we going for? Well, let's make functions on records.
 
 -- data User = User

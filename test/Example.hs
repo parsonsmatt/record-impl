@@ -1,4 +1,4 @@
-{-# language QuasiQuotes #-}
+{-# language DataKinds, QuasiQuotes, OverloadedRecordDot #-}
 {-# language TemplateHaskell #-}
 
 module Example where
@@ -14,16 +14,16 @@ impl ''User [d|
 
     applyName :: (String -> String) -> String
     applyName f =
-        f self.userName
+        f self.name
 
     sayName :: IO ()
     sayName =
-        putStrLn self.userName
+        putStrLn self.name
 
     |]
 
 runExample :: IO ()
 runExample = do
-    let user = User { userName = "Matt", userBirthYear = 33 }
+    let user = User { name = "Matt", birthYear = 33 }
 
     user.sayName

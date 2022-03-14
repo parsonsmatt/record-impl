@@ -1,4 +1,4 @@
-{-# language TypeApplications, RankNTypes, TypeFamilyDependencies, TypeFamilies, GADTs, ScopedTypeVariables, UndecidableInstances, ImpredicativeTypes, OverloadedRecordDot, QuasiQuotes, NoMonomorphismRestriction, OverloadedRecordUpdate, DataKinds, FlexibleContexts , TemplateHaskell #-}
+{-# language TypeApplications, RankNTypes, TypeFamilyDependencies, TypeFamilies, GADTs, ScopedTypeVariables, UndecidableInstances, ImpredicativeTypes, OverloadedRecordDot, QuasiQuotes, NoMonomorphismRestriction, DataKinds, FlexibleContexts , TemplateHaskell #-}
 
 {-# language RankNTypes, FlexibleInstances, MultiParamTypeClasses, FunctionalDependencies, ExistentialQuantification, ExplicitForAll, ImpredicativeTypes, RankNTypes #-}
 
@@ -31,8 +31,6 @@ go = do
     user.myPrint 'a'
     user.myPrint 3
     print =<< user.age
-
-    print
 
 instance HasField "setName" User (String -> User) where
     getField self str = self { name = str }

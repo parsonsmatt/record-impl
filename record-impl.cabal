@@ -1,9 +1,9 @@
 cabal-version: 1.12
 name:           record-impl
 version:        0.0.0.1
-description:    Please see the README on GitHub at <https://github.com/parsonsmatt/impl#readme>
-homepage:       https://github.com/parsonsmatt/impl#readme
-bug-reports:    https://github.com/parsonsmatt/impl/issues
+description:    Please see the README on GitHub at <https://github.com/parsonsmatt/record-impl#readme>
+homepage:       https://github.com/parsonsmatt/record-impl#readme
+bug-reports:    https://github.com/parsonsmatt/record-impl/issues
 author:         Matt Parsons
 maintainer:     parsonsmatt@gmail.com
 copyright:      Matt Parsons
@@ -16,7 +16,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/parsonsmatt/impl
+  location: https://github.com/parsonsmatt/record-impl
 
 library
   exposed-modules:

@@ -14,16 +14,12 @@ import Language.Haskell.TH.Lens hiding (name)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Prelude hiding (exp)
-import Data.Time
+-- import Data.Time
 import GHC.Records
 import Language.Haskell.TH
 
 -- What are we going for? Well, let's make functions on records.
 
--- data User = User
---     { name :: String
---     , age :: Int
---     }
 --
 -- sayName :: User -> IO ()
 -- sayName user = putStrLn user.name

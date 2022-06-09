@@ -1,31 +1,41 @@
 {-# language GADTs, UndecidableInstances, TemplateHaskell, OverloadedRecordDot, DataKinds #-}
 
-{-# OPTIONS_GHC -ddump-splices #-}
-
 module Impl where
 
--- -- $> :set -XFlexibleContexts
+import Control.Monad.IO.Class
+import Impl.TH
+
+data User = User
+    { name :: String
+    , age :: Int
+    }
+    deriving Show
+
+impl ''User [d|
+    greet :: String -> IO ()
+    greet message = do
+        putStrLn $ concat [ message, ", ", self.name ]
+
+    explode :: IO ()
+    explode =
+        error "oh no"
+
+    vote :: IO ()
+    vote =
+        if self.age >= 18
+            then putStrLn "voting"
+            else putStrLn "alas"
+    |]
+
+
+uhhWhat :: IO ()
+uhhWhat = user.explode
+
+user :: User
+user = (User { name = "asdf", age = 32})
+
+-- $> :load Impl
 --
--- import Impl.TH
--- import GHC.Records
+-- $> user.greet "hello"
 --
--- impl ''User [d|
---     greet :: String -> IO ()
---     greet message = do
---         putStrLn $ concat [ message, ", ", "asdf" ]
---     |]
---
---
--- uhhWhat :: IO ()
--- uhhWhat = (User { name = "asdf", age = 32}).explode
---
--- -- $> let user = User { name = "Matt parsons", age = 32 }
---
--- -- $> user.sayName
---
--- -- user.explode
---
--- asdf :: Int
--- asdf = 10
---
--- -- $> asd
+-- $> user.vote

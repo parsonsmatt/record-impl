@@ -43,6 +43,7 @@ test-suite impl-test
   build-depends:
       base >=4.7 && <5
     , record-impl
+    , time
   default-language: Haskell2010
   other-modules:
     Example

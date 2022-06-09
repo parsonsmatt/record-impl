@@ -4,6 +4,7 @@
 module Example where
 
 import Impl.TH
+import Data.Time
 
 data User = User
     { name :: String
@@ -20,10 +21,16 @@ impl ''User [d|
     sayName =
         putStrLn self.name
 
+    age :: IO Int
+    age = do
+        (d, m, y) <- toGregorian . utctDay <$> getCurrentTime
+        pure (y - self.birthYear)
     |]
 
+-- $> runExample
 runExample :: IO ()
 runExample = do
     let user = User { name = "Matt", birthYear = 33 }
 
     user.sayName
+    print =<< user.age
